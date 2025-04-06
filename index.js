@@ -7,13 +7,10 @@ const cookieParser = require("cookie-parser");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
-
 // middlewares
 app.use(
 	cors({
-		origin: [
-			"http://localhost:5173",
-		],
+		origin: ["http://localhost:5173"],
 		credentials: true,
 	})
 );
@@ -34,8 +31,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
 	try {
-    const database = client.db("PlanetCare");
-    const userCollection = database.collection("users");
+		const database = client.db("PlanetCare");
+		const userCollection = database.collection("users");
 
 		// jwt
 		app.post("/jwt", (req, res) => {
@@ -54,6 +51,23 @@ async function run() {
 					sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
 				})
 				.send("Cookie is cleared");
+		});
+
+    
+
+
+    // ! users api
+
+    // create user
+		app.post("/users", async (req, res) => {
+			const user = req.body;
+			const isNew = await userCollection.findOne({ email: user.email });
+			if (!isNew) {
+				const result = await userCollection.insertOne(user);
+				res.send(result);
+			} else {
+				res.send({ message: "User already exists!", insertedId: null });
+			}
 		});
 
 		//! middlewares
@@ -97,7 +111,6 @@ async function run() {
 				clientSecret: paymentIntent.client_secret,
 			});
 		});
-
 
 		console.log(
 			"Pinged your deployment. You successfully connected to MongoDB!"
