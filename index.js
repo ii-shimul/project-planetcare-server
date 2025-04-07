@@ -33,6 +33,7 @@ async function run() {
 	try {
 		const database = client.db("PlanetCare");
 		const userCollection = database.collection("users");
+		const eventsCollection = database.collection("events");
 
 		// jwt
 		app.post("/jwt", (req, res) => {
@@ -53,12 +54,85 @@ async function run() {
 				.send("Cookie is cleared");
 		});
 
-    
+		// ! events api
 
+		// get all events
+		app.get("/events", async (req, res) => {
+			const result = await eventsCollection.find().toArray();
+			res.send(result);
+		});
 
-    // ! users api
+		// get one event
+		app.get("/events/:id", async (req, res) => {
+			try {
+				const { id } = req.params;
+				const result = await eventsCollection.findOne({
+					_id: new ObjectId(id),
+				});
+				if (!result) {
+					return res.status(404).send({ message: "Event not found" });
+				}
+				res.send(result);
+			} catch (error) {
+				res
+					.status(500)
+					.send({ message: "Internal Server Error", error: error.message });
+			}
+		});
 
-    // create user
+		// add user email to the volunteers array
+		app.patch("/events/:id/volunteer", async (req, res) => {
+			try {
+				const { id } = req.params;
+				const { email } = req.body;
+				const event = await eventsCollection.findOne({ _id: new ObjectId(id) });
+
+				// check if the email is already in the volunteers array
+				if (event.volunteers.includes(email)) {
+					return res
+						.status(400)
+						.send({ message: "User is already a volunteer" });
+				}
+
+				const result = await eventsCollection.updateOne(
+					{ _id: new ObjectId(id) },
+					{ $push: { volunteers: email } }
+				);
+
+				if (result.modifiedCount === 0) {
+					return res.status(500).send({ message: "Failed to add volunteer" });
+				}
+				res.send({ message: "Volunteer added successfully" });
+			} catch (error) {
+				res
+					.status(500)
+					.send({ message: "Internal Server Error", error: error.message });
+			}
+		});
+
+		// get all events a user volunteered for
+		app.get("/events/volunteered/:email", async (req, res) => {
+			try {
+				const { email } = req.params;
+				const events = await eventsCollection
+					.find({ volunteers: email })
+					.toArray();
+				if (events.length === 0) {
+					return res
+						.status(404)
+						.send({ message: "No events found for this user" });
+				}
+				res.send(events);
+			} catch (error) {
+				res
+					.status(500)
+					.send({ message: "Internal Server Error", error: error.message });
+			}
+		});
+
+		// ! users api
+
+		// create user
 		app.post("/users", async (req, res) => {
 			const user = req.body;
 			const isNew = await userCollection.findOne({ email: user.email });
