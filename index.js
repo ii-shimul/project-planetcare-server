@@ -55,6 +55,24 @@ async function run() {
 				.send("Cookie is cleared");
 		});
 
+		// ! admin stats
+		app.get("/admin-stats", async (req, res) => {
+			const totalUsers = await userCollection.countDocuments();
+			const totalEvents = await eventsCollection.countDocuments();
+			const totalDonations = await donationsCollections
+				.aggregate([
+					{
+						$group: {
+							_id: null,
+							total: { $sum: "$amount" },
+						},
+					},
+				])
+				.toArray();
+			const stats = { totalUsers, totalDonations, totalEvents };
+			res.send(stats)
+		});
+
 		// ! events api
 
 		// get all events
