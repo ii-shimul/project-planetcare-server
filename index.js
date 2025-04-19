@@ -70,7 +70,7 @@ async function run() {
 				])
 				.toArray();
 			const stats = { totalUsers, totalDonations, totalEvents };
-			res.send(stats)
+			res.send(stats);
 		});
 
 		// ! events api
@@ -136,6 +136,27 @@ async function run() {
 			} else {
 				res.send({ message: "User already exists!", insertedId: null });
 			}
+		});
+
+		// get all users with pagination
+		app.get("/users", async (req, res) => {
+			const page = parseInt(req.query.page) || 1;
+			const limit = parseInt(req.query.limit) || 10;
+			const skip = (page - 1) * limit;
+
+			const totalUsers = await userCollection.countDocuments();
+			const users = await userCollection
+				.find()
+				.skip(skip)
+				.limit(limit)
+				.toArray();
+
+			res.send({
+				totalUsers,
+				page,
+				limit,
+				users,
+			});
 		});
 
 		//! middlewares
