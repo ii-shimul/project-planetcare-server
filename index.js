@@ -159,6 +159,16 @@ async function run() {
 			});
 		});
 
+		// make a user admin api
+		app.patch("/users/make-admin/:id", async (req, res) => {
+			const { id } = req.params;
+			const result = await userCollection.updateOne(
+				{ _id: new ObjectId(id) },
+				{ $set: { role: "Admin" } }
+			);
+			res.send(result);
+		});
+
 		//! middlewares
 		const verifyToken = (req, res, next) => {
 			if (!req.headers.authorization) {
